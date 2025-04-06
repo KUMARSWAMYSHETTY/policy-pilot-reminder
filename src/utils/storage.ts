@@ -1,4 +1,5 @@
 import { Customer, Policy, Reminder } from "@/types";
+import { getNextPaymentDate, getReminderDate } from "./dateUtils";
 
 // Local storage keys
 const CUSTOMERS_KEY = 'insurance_customers';
@@ -79,26 +80,86 @@ export const getCustomerById = (id: string): Customer | undefined => {
 // Policy storage functions
 export const getPolicies = (): Policy[] => {
   const data = localStorage.getItem(POLICIES_KEY);
-  return data ? JSON.parse(data) : [];
+  console.log('Raw data from localStorage:', data);
+  const policies = data ? JSON.parse(data) : [];
+  console.log('Parsed policies:', policies);
+  return policies;
 };
 
 export const savePolicy = (policy: Policy): Policy => {
-  const policies = getPolicies();
-  const newPolicy = {
-    ...policy,
-    id: policy.id || generateId()
-  };
-  
-  const newPolicies = policy.id 
-    ? policies.map(p => p.id === policy.id ? newPolicy : p) 
-    : [...policies, newPolicy];
-  
-  localStorage.setItem(POLICIES_KEY, JSON.stringify(newPolicies));
-  
-  // Update reminders when policy is saved
-  updatePolicyReminders(newPolicy);
-  
-  return newPolicy;
+  try {
+    console.log('Starting to save policy:', policy);
+    
+    // Validate customer exists
+    const customer = getCustomerById(policy.customerId);
+    if (!customer) {
+      console.error('Customer not found:', policy.customerId);
+      throw new Error('Customer not found');
+    }
+    
+    // Generate new ID if not exists
+    const newPolicy = {
+      ...policy,
+      id: policy.id || generateId()
+    };
+    console.log('Policy with ID:', newPolicy);
+    
+    // Get existing policies
+    let existingPolicies: Policy[] = [];
+    try {
+      const data = localStorage.getItem(POLICIES_KEY);
+      existingPolicies = data ? JSON.parse(data) : [];
+      console.log('Existing policies:', existingPolicies);
+    } catch (error) {
+      console.error('Error reading existing policies:', error);
+      existingPolicies = [];
+    }
+    
+    // Update or add the policy
+    const isExisting = existingPolicies.some(p => p.id === newPolicy.id);
+    const updatedPolicies = isExisting
+      ? existingPolicies.map(p => p.id === newPolicy.id ? newPolicy : p)
+      : [...existingPolicies, newPolicy];
+    
+    console.log('Updated policies array:', updatedPolicies);
+    
+    // Save to localStorage
+    try {
+      const policiesJson = JSON.stringify(updatedPolicies);
+      localStorage.setItem(POLICIES_KEY, policiesJson);
+      console.log('Saved policies to localStorage');
+      
+      // Immediate verification
+      const savedData = localStorage.getItem(POLICIES_KEY);
+      if (!savedData) {
+        throw new Error('Failed to verify policy save - no data found');
+      }
+      
+      const parsedSavedData = JSON.parse(savedData);
+      const savedPolicy = parsedSavedData.find((p: Policy) => p.id === newPolicy.id);
+      if (!savedPolicy) {
+        throw new Error('Failed to verify policy save - policy not found in saved data');
+      }
+      
+      console.log('Successfully verified saved policy:', savedPolicy);
+      
+      // Update reminders
+      try {
+        updatePolicyReminders(newPolicy);
+      } catch (reminderError) {
+        console.error('Error updating reminders:', reminderError);
+        // Continue even if reminder update fails
+      }
+      
+      return newPolicy;
+    } catch (error) {
+      console.error('Error in save/verify process:', error);
+      throw new Error('Failed to save or verify policy');
+    }
+  } catch (error) {
+    console.error('Error in policy save process:', error);
+    throw error;
+  }
 };
 
 export const deletePolicy = (id: string): void => {
@@ -148,26 +209,44 @@ export const markReminderAsNotified = (id: string): void => {
 };
 
 export const updatePolicyReminders = (policy: Policy): void => {
-  // Remove existing reminders for this policy
-  const existingReminders = getReminders().filter(r => r.policyId !== policy.id);
-  
-  // Import date functions
-  const { getNextPaymentDate, getReminderDate } = require('./dateUtils');
-  
-  // Create new reminder for the next payment
-  const nextPaymentDate = getNextPaymentDate(policy.paymentDate);
-  const reminderDate = getReminderDate(nextPaymentDate);
-  
-  const newReminder: Reminder = {
-    id: generateId(),
-    policyId: policy.id,
-    customerId: policy.customerId,
-    dueDate: reminderDate.toISOString(),
-    notified: false
-  };
-  
-  // Save reminders
-  localStorage.setItem(REMINDERS_KEY, JSON.stringify([...existingReminders, newReminder]));
+  try {
+    console.log('Starting to update reminders for policy:', policy);
+    
+    // Remove existing reminders for this policy
+    const existingReminders = getReminders().filter(r => r.policyId !== policy.id);
+    console.log('Existing reminders after filtering:', existingReminders);
+    
+    // Create new reminder for the next payment
+    const nextPaymentDate = getNextPaymentDate(policy.paymentDate);
+    console.log('Next payment date:', nextPaymentDate);
+    
+    const reminderDate = getReminderDate(nextPaymentDate);
+    console.log('Reminder date:', reminderDate);
+    
+    const newReminder: Reminder = {
+      id: generateId(),
+      policyId: policy.id,
+      customerId: policy.customerId,
+      dueDate: reminderDate.toISOString(),
+      notified: false
+    };
+    
+    console.log('New reminder to save:', newReminder);
+    
+    // Save reminders
+    const updatedReminders = [...existingReminders, newReminder];
+    console.log('All reminders to save:', updatedReminders);
+    
+    localStorage.setItem(REMINDERS_KEY, JSON.stringify(updatedReminders));
+    console.log('Successfully saved reminders');
+    
+    // Verify the save
+    const savedReminders = localStorage.getItem(REMINDERS_KEY);
+    console.log('Verified saved reminders:', savedReminders);
+  } catch (error) {
+    console.error('Error updating policy reminders:', error);
+    throw error;
+  }
 };
 
 // Get today's reminders

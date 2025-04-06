@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { savePolicy, getPolicyById, getCustomerById, getCustomers, generateId } from '@/utils/storage';
+import { savePolicy, getPolicyById, getCustomerById, getCustomers, generateId, getPolicies } from '@/utils/storage';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { 
@@ -104,7 +103,7 @@ const PolicyForm = () => {
     }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -123,12 +122,28 @@ const PolicyForm = () => {
       return;
     }
     
+    if (!policy.customerId) {
+      toast.error('Customer is required');
+      return;
+    }
+    
     try {
       console.log('Saving policy with data:', policy);
       
       // Save policy
       const savedPolicy = savePolicy(policy);
       console.log('Policy saved successfully:', savedPolicy);
+      
+      // Wait a moment to ensure localStorage is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Verify the save
+      const policies = getPolicies();
+      const savedPolicyExists = policies.some(p => p.id === savedPolicy.id);
+      
+      if (!savedPolicyExists) {
+        throw new Error('Policy was not saved successfully');
+      }
       
       toast.success(`Policy ${isEditing ? 'updated' : 'added'} successfully`);
       
@@ -139,7 +154,19 @@ const PolicyForm = () => {
       }
     } catch (error) {
       console.error('Error saving policy:', error);
-      toast.error('Failed to save policy');
+      
+      // Show specific error messages based on the error
+      if (error instanceof Error) {
+        if (error.message === 'Customer not found') {
+          toast.error('Selected customer not found. Please select a valid customer.');
+        } else if (error.message === 'Failed to save policy to storage') {
+          toast.error('Failed to save policy. Please try again.');
+        } else {
+          toast.error(error.message || 'Failed to save policy');
+        }
+      } else {
+        toast.error('An unexpected error occurred while saving the policy');
+      }
     }
   };
   
