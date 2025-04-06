@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Customer } from '@/types';
 import { deleteCustomer } from '@/utils/storage';
+import { generateId } from '@/utils/storage';
 
 const CustomerForm = () => {
   const navigate = useNavigate();
@@ -45,6 +46,12 @@ const CustomerForm = () => {
         toast.error('Customer not found');
         navigate('/customers');
       }
+    } else {
+      // Initialize with a new ID for new customers
+      setCustomer(prev => ({
+        ...prev,
+        id: generateId()
+      }));
     }
   }, [id, isEditing, navigate]);
   
@@ -70,10 +77,16 @@ const CustomerForm = () => {
       return;
     }
     
-    // Save customer
-    saveCustomer(customer);
-    toast.success(`Customer ${isEditing ? 'updated' : 'added'} successfully`);
-    navigate('/customers');
+    try {
+      // Save customer
+      const savedCustomer = saveCustomer(customer);
+      console.log('Customer saved:', savedCustomer);
+      toast.success(`Customer ${isEditing ? 'updated' : 'added'} successfully`);
+      navigate('/customers');
+    } catch (error) {
+      console.error('Error saving customer:', error);
+      toast.error('Failed to save customer. Please try again.');
+    }
   };
   
   const handleDelete = () => {
