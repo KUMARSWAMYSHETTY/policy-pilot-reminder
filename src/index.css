@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -97,5 +98,16 @@
 
   body {
     @apply bg-background text-foreground;
+    @apply bg-gray-50;
   }
+}
+
+/* Ensure dropdown menus have a background */
+.dropdown-menu {
+  @apply bg-white shadow-lg rounded-md border border-gray-200 z-50;
+}
+
+/* Fix z-index for dropdown menus */
+[data-radix-popper-content-wrapper] {
+  @apply z-50 !important;
 }
