@@ -52,6 +52,7 @@ const CustomerForm = () => {
         ...prev,
         id: generateId()
       }));
+      console.log('Creating new customer');
     }
   }, [id, isEditing, navigate]);
   
