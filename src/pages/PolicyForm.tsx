@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { savePolicy, getPolicyById, getCustomerById, getCustomers } from '@/utils/storage';
+import { savePolicy, getPolicyById, getCustomerById, getCustomers, generateId } from '@/utils/storage';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { 
@@ -34,7 +34,7 @@ import { formatDate } from '@/utils/dateUtils';
 const PolicyForm = () => {
   const navigate = useNavigate();
   const { id, customerId } = useParams();
-  const isEditing = id !== 'new';
+  const isEditing = id !== undefined && id !== 'new';
   
   const [policy, setPolicy] = useState<Policy>({
     id: '',
@@ -51,6 +51,9 @@ const PolicyForm = () => {
   const [customerName, setCustomerName] = useState('');
   
   useEffect(() => {
+    console.log('PolicyForm initialized with id:', id, 'customerId:', customerId);
+    console.log('isEditing:', isEditing);
+    
     setCustomers(getCustomers());
     
     if (isEditing) {
@@ -67,6 +70,15 @@ const PolicyForm = () => {
         navigate('/policies');
       }
     } else if (customerId) {
+      // Make sure we have a fresh ID for new policies
+      const newId = generateId();
+      setPolicy(prev => ({
+        ...prev,
+        id: newId,
+        customerId: customerId
+      }));
+      console.log('Creating new policy with ID:', newId);
+      
       const customer = getCustomerById(customerId);
       if (customer) {
         setCustomerName(customer.name);
@@ -111,14 +123,23 @@ const PolicyForm = () => {
       return;
     }
     
-    // Save policy
-    savePolicy(policy);
-    toast.success(`Policy ${isEditing ? 'updated' : 'added'} successfully`);
-    
-    if (isEditing) {
-      navigate(-1);
-    } else {
-      navigate(`/customers/${policy.customerId}`);
+    try {
+      console.log('Saving policy with data:', policy);
+      
+      // Save policy
+      const savedPolicy = savePolicy(policy);
+      console.log('Policy saved successfully:', savedPolicy);
+      
+      toast.success(`Policy ${isEditing ? 'updated' : 'added'} successfully`);
+      
+      if (isEditing) {
+        navigate(-1);
+      } else {
+        navigate(`/customers/${policy.customerId}`);
+      }
+    } catch (error) {
+      console.error('Error saving policy:', error);
+      toast.error('Failed to save policy');
     }
   };
   
