@@ -27,10 +27,10 @@ import { generateId } from '@/utils/storage';
 const CustomerForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const isEditing = id !== 'new';
+  const isEditing = !!id && id !== 'new';
   
   const [customer, setCustomer] = useState<Customer>({
-    id: '',
+    id: generateId(),
     name: '',
     phone: '',
     email: '',
@@ -39,20 +39,23 @@ const CustomerForm = () => {
   
   useEffect(() => {
     if (isEditing) {
-      const existingCustomer = getCustomerById(id!);
-      if (existingCustomer) {
-        setCustomer(existingCustomer);
-      } else {
-        toast.error('Customer not found');
+      try {
+        const existingCustomer = getCustomerById(id!);
+        if (existingCustomer) {
+          setCustomer(existingCustomer);
+          console.log('Editing customer:', existingCustomer);
+        } else {
+          console.error('Customer not found for ID:', id);
+          toast.error('Customer not found');
+          navigate('/customers');
+        }
+      } catch (error) {
+        console.error('Error loading customer:', error);
+        toast.error('Error loading customer');
         navigate('/customers');
       }
     } else {
-      // Initialize with a new ID for new customers
-      setCustomer(prev => ({
-        ...prev,
-        id: generateId()
-      }));
-      console.log('Creating new customer');
+      console.log('Creating new customer with ID:', customer.id);
     }
   }, [id, isEditing, navigate]);
   
