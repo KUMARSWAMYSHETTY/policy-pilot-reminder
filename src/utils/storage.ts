@@ -1,4 +1,3 @@
-
 import { Customer, Policy, Reminder } from "@/types";
 
 // Local storage keys
@@ -18,18 +17,46 @@ export const getCustomers = (): Customer[] => {
 };
 
 export const saveCustomer = (customer: Customer): Customer => {
+  // Ensure we have existing customers first
   const customers = getCustomers();
+  
+  // Make sure we have a valid ID
   const newCustomer = {
     ...customer,
     id: customer.id || generateId()
   };
   
-  const newCustomers = customer.id 
-    ? customers.map(c => c.id === customer.id ? newCustomer : c) 
-    : [...customers, newCustomer];
+  console.log('Saving customer:', newCustomer);
+  console.log('Existing customers:', customers);
   
-  localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(newCustomers));
-  return newCustomer;
+  // Check if we're updating or creating
+  const isExisting = customers.some(c => c.id === newCustomer.id);
+  let newCustomers;
+  
+  if (isExisting) {
+    // Update existing customer
+    newCustomers = customers.map(c => c.id === newCustomer.id ? newCustomer : c);
+    console.log('Updating existing customer');
+  } else {
+    // Add new customer
+    newCustomers = [...customers, newCustomer];
+    console.log('Adding new customer');
+  }
+  
+  // Save to localStorage
+  try {
+    localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(newCustomers));
+    console.log('Successfully saved customers to localStorage');
+    
+    // Verify storage
+    const savedData = localStorage.getItem(CUSTOMERS_KEY);
+    console.log('Saved data in localStorage:', savedData);
+    
+    return newCustomer;
+  } catch (error) {
+    console.error('Error saving to localStorage:', error);
+    throw new Error('Failed to save customer data');
+  }
 };
 
 export const deleteCustomer = (id: string): void => {

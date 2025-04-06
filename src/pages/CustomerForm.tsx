@@ -38,6 +38,9 @@ const CustomerForm = () => {
   });
   
   useEffect(() => {
+    console.log('CustomerForm initialized with id:', id);
+    console.log('isEditing:', isEditing);
+    
     if (isEditing) {
       try {
         const existingCustomer = getCustomerById(id!);
@@ -55,7 +58,13 @@ const CustomerForm = () => {
         navigate('/customers');
       }
     } else {
-      console.log('Creating new customer with ID:', customer.id);
+      // Make sure we have a fresh ID for new customers
+      const newId = generateId();
+      setCustomer(prev => ({
+        ...prev,
+        id: newId
+      }));
+      console.log('Creating new customer with ID:', newId);
     }
   }, [id, isEditing, navigate]);
   
@@ -82,9 +91,12 @@ const CustomerForm = () => {
     }
     
     try {
+      console.log('Saving customer with data:', customer);
+      
       // Save customer
       const savedCustomer = saveCustomer(customer);
-      console.log('Customer saved:', savedCustomer);
+      console.log('Customer saved successfully:', savedCustomer);
+      
       toast.success(`Customer ${isEditing ? 'updated' : 'added'} successfully`);
       navigate('/customers');
     } catch (error) {
