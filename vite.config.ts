@@ -6,7 +6,7 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    base: '/policy-pilot-reminders',
+    base: '/policy-pilot-reminders/',
     host: "::",
     port: 8080,
   },
